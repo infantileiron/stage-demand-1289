@@ -8,3 +8,4 @@ class ScenarioCreate(BaseModel):
     horizon: Literal[7, 14] = 7
     weekend_event: bool = False
     people_per_usher: int = Field(default=65, ge=20, le=150)
+    mode: Literal["single", "linked"] = "single"

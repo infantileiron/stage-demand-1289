@@ -11,6 +11,7 @@ class Scenario:
     horizon: int
     weekend_event: bool
     people_per_usher: int
+    mode: str = "single"
 
     def payload(self):
         return asdict(self)

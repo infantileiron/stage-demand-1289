@@ -5,6 +5,7 @@ from src.constants.enums import RunStatus
 from src.utils.database import list_rows,get_row,insert_row,update_row
 from src.utils import queue
 from src.services.forecast import analyze
+from src.services.linked_forecast import linked_analyze
 
 def list_runs(): return list_rows(Run.table)
 
@@ -26,7 +27,10 @@ def process(ident):
     try:
         scenario=get_row("scenarios",run["scenario_id"])
         dataset=get_row("datasets",scenario["dataset_id"])
-        result=analyze(dataset["rows"],scenario)
+        if scenario.get("mode","single")=="linked":
+            result=linked_analyze(dataset["rows"],scenario)
+        else:
+            result=analyze(dataset["rows"],scenario)
         return update_row(Run.table,ident,{"status":RunStatus.COMPLETED.value,"result":result,"error":None})
     except Exception as exc:
         return update_row(Run.table,ident,{"status":RunStatus.FAILED.value,"error":str(exc)[:400]})

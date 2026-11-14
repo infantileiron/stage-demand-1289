@@ -5,6 +5,7 @@ import random
 from src.utils.database import init_db,insert_row,list_rows
 from src.utils.security import password_hash
 from src.services.forecast import analyze
+from src.services.linked_forecast import linked_analyze
 
 def demo_rows():
     rng=random.Random(261104)
@@ -24,11 +25,15 @@ def seed():
         insert_row("users",role+"@stage.local",{"email":role+"@stage.local","name":name,"role":role,"password_hash":password_hash("Stage2611!")},preserve=True)
     rows=demo_rows()
     dataset=insert_row("datasets","拾光剧场420天到场记录",{"name":"拾光剧场420天到场记录","filename":"attendance_daily_202611.csv","row_count":1260,"venues":["大剧场","黑匣子","实验厅"],"rows":rows},preserve=True)
-    first=insert_row("scenarios","11月常规排演",{"name":"11月常规排演","dataset_id":dataset["id"],"venue":"大剧场","horizon":7,"weekend_event":False,"people_per_usher":65},preserve=True)
-    insert_row("scenarios","黑匣子周末特别场",{"name":"黑匣子周末特别场","dataset_id":dataset["id"],"venue":"黑匣子","horizon":14,"weekend_event":True,"people_per_usher":45},preserve=True)
+    first=insert_row("scenarios","11月常规排演",{"name":"11月常规排演","dataset_id":dataset["id"],"venue":"大剧场","horizon":7,"weekend_event":False,"people_per_usher":65,"mode":"single"},preserve=True)
+    insert_row("scenarios","黑匣子周末特别场",{"name":"黑匣子周末特别场","dataset_id":dataset["id"],"venue":"黑匣子","horizon":14,"weekend_event":True,"people_per_usher":45,"mode":"single"},preserve=True)
+    linked=insert_row("scenarios","三厅联动周度预演",{"name":"三厅联动周度预演","dataset_id":dataset["id"],"venue":"大剧场","horizon":7,"weekend_event":False,"people_per_usher":65,"mode":"linked"},preserve=True)
     existing=next((r for r in list_rows("runs") if r["key"]=="seed-run-november"),None)
     result=existing["result"] if existing else analyze(dataset["rows"],first)
     run=insert_row("runs","seed-run-november",{"scenario_id":first["id"],"status":"completed","error":None,"result":result},preserve=True)
+    existing_linked=next((r for r in list_rows("runs") if r["key"]=="seed-run-linked"),None)
+    linked_result=existing_linked["result"] if existing_linked else linked_analyze(dataset["rows"],linked)
+    insert_row("runs","seed-run-linked",{"scenario_id":linked["id"],"status":"completed","error":None,"result":linked_result},preserve=True)
     plan=insert_row("plans","11月常规场引导员草案",{"name":"11月常规场引导员草案","run_id":run["id"],"venue":"大剧场","days":result["forecast"],"status":"approved","approved_by":"admin@stage.local"},preserve=True)
     insert_row("reports","11月排演需求预演纪要",{"title":"11月排演需求预演纪要","plan_id":plan["id"],"venue":"大剧场","days":plan["days"],"status":"approved"},preserve=True)
     from src.services.schedule import next_occurrence,clock
